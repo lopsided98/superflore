@@ -46,8 +46,8 @@ class TestDocker(unittest.TestCase):
         docker_instance = Docker()
         tmp = list()
         tmp.append("echo 'hello, world!'")
-        docker_instance.add_bash_command("echo 'hello, world!'")
-        self.assertEqual(docker_instance.bash_cmds, tmp)
+        docker_instance.add_sh_command("echo 'hello, world!'")
+        self.assertEqual(docker_instance.sh_cmds, tmp)
 
     def test_build(self):
         """Test Docker build"""
@@ -60,21 +60,21 @@ class TestDocker(unittest.TestCase):
         """Test Docker run"""
         docker_instance = Docker()
         docker_instance.build('tests/docker/Dockerfile')
-        docker_instance.add_bash_command("echo Hello, docker")
+        docker_instance.add_sh_command("echo Hello, docker")
         docker_instance.run()
 
     def test_pull(self):
         """Test Docker pull"""
         docker_instance = Docker()
         docker_instance.pull('allenh1', 'ros_gentoo_base')
-        docker_instance.add_bash_command("echo Hello, Gentoo")
+        docker_instance.add_sh_command("echo Hello, Gentoo")
         docker_instance.run()
 
     def test_get_command(self):
         """Test the get_command function"""
         docker_instance = Docker()
-        docker_instance.add_bash_command("echo Hello, docker")
-        docker_instance.add_bash_command("echo command two.")
+        docker_instance.add_sh_command("echo Hello, docker")
+        docker_instance.add_sh_command("echo command two.")
         # get command string
         ret = docker_instance.get_command()
         self.assertEqual(ret, "bash -c 'echo Hello, docker && echo command two.'")
@@ -88,6 +88,6 @@ class TestDocker(unittest.TestCase):
         """Test the log file output"""
         docker_instance = Docker()
         docker_instance.pull('gentoo', 'stage3-amd64')
-        docker_instance.add_bash_command("echo Log Text!")
+        docker_instance.add_sh_command("echo Log Text!")
         docker_instance.run()
         self.assertEqual(docker_instance.log, "Log Text!\n")

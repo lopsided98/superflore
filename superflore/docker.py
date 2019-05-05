@@ -28,18 +28,18 @@ class Docker(object):
         self.client = docker.from_env()
         self.image = None
         self.directory_map = dict()
-        self.bash_cmds = list()
+        self.sh_cmds = list()
 
     def map_directory(self, host, container=None, mode='rw'):
         self.directory_map[host] = dict()
         self.directory_map[host]['bind'] = container or host
         self.directory_map[host]['mode'] = mode
 
-    def add_bash_command(self, cmd):
-        self.bash_cmds.append(cmd)
+    def add_sh_command(self, cmd):
+        self.sh_cmds.append(cmd)
 
     def clear_commands(self):
-        self.bash_cmds = list()
+        self.sh_cmds = list()
 
     def build(self, dockerfile):
         dockerfile_directory = os.path.dirname(dockerfile)
@@ -76,15 +76,15 @@ class Docker(object):
 
     def get_command(self, logging_dir=None, logging_file=None):
         if logging_dir:
-            cmd = "bash -c '"
+            cmd = "sh -c '"
             cmd += (
-                " &>> %s/%s && " % (
+                " >> %s/%s 2>&1 && " % (
                     logging_dir, logging_file
                 )
-            ).join(self.bash_cmds)
-            cmd += (" &>> %s/%s'" % (logging_dir, logging_file))
+            ).join(self.sh_cmds)
+            cmd += (" >> %s/%s 2>&1'" % (logging_dir, logging_file))
         else:
-            cmd = "bash -c '" + " && ".join(self.bash_cmds) + "'"
+            cmd = "sh -c '" + " && ".join(self.sh_cmds) + "'"
         return cmd
 
     def run(self, rm=True, show_cmd=False, privileged=False, log_file=None):

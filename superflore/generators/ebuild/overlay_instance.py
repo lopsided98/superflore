@@ -79,8 +79,8 @@ class RosOverlay(object):
         for key in regen_dict.keys():
             for pkg in regen_dict[key]:
                 pkg_dir = '/tmp/ros-overlay/ros-{0}/{1}'.format(key, pkg)
-                dock.add_bash_command('cd {0}'.format(pkg_dir))
-                dock.add_bash_command('repoman manifest')
+                dock.add_sh_command('cd {0}'.format(pkg_dir))
+                dock.add_sh_command('repoman manifest')
         try:
             dock.run(show_cmd=True)
         except docker.errors.ContainerError:
