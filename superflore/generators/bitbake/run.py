@@ -146,7 +146,7 @@ def main():
                 regen_dict = dict()
                 regen_dict[args.ros_distro] = args.only
                 delta = "Regenerated: '%s'\n" % args.only
-                commit_msg = '\n'.join([get_pr_text(
+                commit_msg = '\n'.join([get_pr_text(comment=
                     title + '\n' + pr_comment.replace(
                         '**superflore**', 'superflore'), markup=''), delta])
                 overlay.commit_changes(args.ros_distro, commit_msg)
@@ -211,7 +211,7 @@ def main():
             'cache.yaml as of {1}\n'.format(
                 args.ros_distro,
                 now)
-        commit_msg = '\n'.join([get_pr_text(
+        commit_msg = '\n'.join([get_pr_text(comment=
             title + '\n' + pr_comment.replace('**superflore**', 'superflore'),
             markup=''), delta])
         overlay.commit_changes(args.ros_distro, commit_msg)
