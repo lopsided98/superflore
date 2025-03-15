@@ -81,6 +81,8 @@ def main():
         preserve_existing = False
     elif args.only:
         parser.error('Invalid args! --only requires specifying --ros-distro')
+    else:
+        raise Exception(f'''Please add one of the following:\n    --all\n    --ros_distro DISTRO_NAME_HERE''')
     if not selected_targets:
         selected_targets = get_distros_by_status('active') + \
             get_distros_by_status('rolling')

@@ -123,6 +123,49 @@ class NixExpression:
     def _to_nix_parameter(dep: str) -> str:
         return dep.split('.')[0]
 
+    @property
+    def url_host(self):
+        # https://github.com/owner/repo/whatever => "github.com"
+        if self.src_url and "//" in self.src_url:
+            after_the_https_part = self.src_url.split("//")[1]
+            first_slash_index = after_the_https_part.index("/")
+            if first_slash_index == -1:
+                first_slash_index = len(after_the_https_part)
+            return after_the_https_part[0:first_slash_index]
+    
+    def attempt_extract_github_tar_data(self):
+        # returns [owner, repo, revision]
+        required_ending = ".tar.gz"
+        if self.url_host != "github.com" or not self.src_url.endswith(required_ending):
+            return None
+        else:
+            no_https = "/".join(self.src_url.split("//")[1:])
+            folders = no_https.split("/")
+            # what is expected:
+                # folders[0] == "github.com"
+                # folders[1] == the owner
+                # folders[2] == the repo name
+                # folders[3] == "archive"
+                # folders[4:] == the tag + ".tar.gz"
+            
+            # if unexpected format
+            if len(folders) < 5:
+                return None
+            
+            owner = folders[1]
+            repo = folders[2]
+            
+            # the stuff after "archive" is a tag
+            # so if there is no "archive" thats a problem
+            if folders[3] != "archive":
+                return None
+            
+            tag_name_pieces = folders[4:]
+            # chop off the .tar.gz part
+            tag_name_pieces[-1] = tag_name_pieces[-1][:-len(required_ending)]
+            tag = "/".join(tag_name_pieces)
+            return [ owner, repo, tag ]
+    
     def get_text(self, distributor: str, license_name: str) -> str:
         """
         Generate the Nix expression, given the distributor line
@@ -146,27 +189,69 @@ class NixExpression:
                                         self.native_build_inputs |
                                         self.propagated_native_build_inputs)))
                          ) + ' }:'
-
-        ret += dedent('''
-        buildRosPackage {{
-          pname = "ros-{distro_name}-{name}";
-          version = "{version}";
-
-          src = fetchurl {{
-            url = "{src_url}";
-            name = "{src_name}";
-            sha256 = "{src_sha256}";
-          }};
-
-          buildType = "{build_type}";
-        ''').format(
-            distro_name=self.distro_name,
-            name=self.name,
-            version=self.version,
-            src_url=self.src_url,
-            src_name=self.src_name,
-            src_sha256=self.src_sha256,
-            build_type=self.build_type)
+        
+        # if possible (for checksum reasons) switch to github fetcher
+        maybe_github_data = self.attempt_extract_github_tar_data()
+        if maybe_github_data:
+            owner, repo, rev = maybe_github_data
+            # super slow, but is the only reliable way AFAIK (would be a lot better to do this asyncly)
+            import subprocess
+            try:
+                # this sha256 can be different from the tarball sha256 (e.g. self.src_256)
+                sha256 = subprocess.check_output(['nix-prefetch', 'fetchFromGitHub', '--quiet', "--repo", repo, "--owner", owner, "--rev", rev ]).decode('utf-8')[0:-1]
+            except Exception as error:
+                print(f'''if you're seeing this warning a lot, please install nix-prefetch then re-run this script''')
+                sha256 = self.src_sha256
+            
+            ret += dedent('''
+            buildRosPackage {{
+              pname = "ros-{distro_name}-{name}";
+              version = "{version}";
+                
+              src = let
+                  fetchFromGithub = (builtins.import (builtins.fetchTarball ({{ url = "https://github.com/NixOS/nixpkgs/archive/aa0e8072a57e879073cee969a780e586dbe57997.tar.gz"; }})) ({{}})).fetchFromGitHub;
+                in
+                  fetchFromGithub {{
+                    owner = "{owner}";
+                    repo = "{repo}";
+                    rev = "{rev}";
+                    sha256 = "{sha256}";
+                  }};
+    
+              buildType = "{build_type}";
+            ''').format(
+                distro_name=self.distro_name,
+                name=self.name,
+                owner=owner,
+                repo=repo,
+                rev=rev,
+                version=self.version,
+                src_url=self.src_url,
+                src_name=self.src_name,
+                sha256=sha256,
+                build_type=self.build_type)
+        # otherwise fallback on more generic fetchurl
+        else:
+            ret += dedent('''
+            buildRosPackage {{
+              pname = "ros-{distro_name}-{name}";
+              version = "{version}";
+    
+              src = fetchurl {{
+                url = "{src_url}";
+                name = "{src_name}";
+                sha256 = "{src_sha256}";
+              }};
+    
+              buildType = "{build_type}";
+            ''').format(
+                distro_name=self.distro_name,
+                name=self.name,
+                version=self.version,
+                src_url=self.src_url,
+                src_name=self.src_name,
+                src_sha256=self.src_sha256,
+                build_type=self.build_type)
 
         if self.build_inputs:
             ret += "  buildInputs = {};\n" \

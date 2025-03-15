@@ -48,12 +48,15 @@ class NixPackage:
         else:
             info("downloading archive version for package '{}'..."
                  .format(name))
-            retry_on_exception(download_file, src_uri, archive_path,
-                               retry_msg="network error downloading '{}'"
-                               .format(src_uri),
-                               error_msg="failed to download archive for '{}'"
-                               .format(name))
-            downloaded_archive = True
+            try:
+                retry_on_exception(download_file, src_uri, archive_path,
+                                retry_msg="network error downloading '{}'"
+                                .format(src_uri),
+                                error_msg="failed to download archive for '{}'"
+                                .format(name))
+                downloaded_archive = True
+            except Exception as error:
+                pass
 
         if downloaded_archive or archive_path not in sha256_cache:
             sha256_cache[archive_path] = hashlib.sha256(

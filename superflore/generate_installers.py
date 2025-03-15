@@ -19,6 +19,7 @@ from superflore.utils import get_pkg_version
 from superflore.utils import info
 from superflore.utils import ok
 from superflore.utils import warn
+import tarfile
 
 
 def generate_installers(
@@ -83,6 +84,16 @@ def generate_installers(
                     percent, str(ub), pkg
                 )
             )
+            failed = failed + 1
+        except tarfile.ReadError:
+            failed_msg = 'Failed to generate %s tarfile.ReadError' % what_generating
+            err("{0}%: {1} for package {2}!".format(percent, failed_msg, pkg))
+            bad_installers.append(pkg)
+            failed = failed + 1
+        except FileNotFoundError:
+            failed_msg = 'Failed to generate %s FileNotFoundError' % what_generating
+            err("{0}%: {1} for package {2}!".format(percent, failed_msg, pkg))
+            bad_installers.append(pkg)
             failed = failed + 1
         except KeyError:
             failed_msg = 'Failed to generate %s' % what_generating

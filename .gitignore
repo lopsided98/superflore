@@ -12,3 +12,4 @@ ros-indigo
 ros-kinetic
 ros-lunar
 .coverage
+*.ignore
