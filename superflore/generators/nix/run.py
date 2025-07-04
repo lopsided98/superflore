@@ -53,6 +53,8 @@ def main():
     if not args.dry_run:
         if 'SUPERFLORE_GITHUB_TOKEN' not in os.environ:
             raise NoGitHubAuthToken()
+    # See https://docs.github.com/en/actions/how-tos/writing-workflows/choosing-what-your-workflow-does/store-information-in-variables#default-environment-variables
+    repo_org = os.getenv("GITHUB_REPOSITORY_OWNER", "lopsided98")
     if args.pr_only:
         if args.dry_run:
             parser.error('Invalid args! cannot dry-run and file PR')
@@ -63,6 +65,7 @@ def main():
                 args.output_repository_path,
                 False,
                 from_branch=args.upstream_branch,
+                org=repo_org,
             )
             msg, title = load_pr()
             prev_overlay.pull_request(msg, title=title)
@@ -84,7 +87,6 @@ def main():
     if not selected_targets:
         selected_targets = get_distros_by_status('active') + \
             get_distros_by_status('rolling')
-    repo_org = 'lopsided98'
     repo_name = 'nix-ros-overlay'
     if args.upstream_repo:
         repo_org, repo_name = url_to_repo_org(args.upstream_repo)
